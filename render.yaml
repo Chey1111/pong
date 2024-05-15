@@ -1,0 +1,9 @@
+services:
+  - type: web
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    name: ghorpong
+    envVars:
+      - key: NODE_ENV
+        value: production
