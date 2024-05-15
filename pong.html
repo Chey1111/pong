@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multiplayer Pong</title>
+  <style>
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pongCanvas" width="800" height="600"></canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const paddleWidth = 10;
+    const paddleHeight = 100;
+    const ballRadius = 10;
+
+    let leftPaddleY = canvas.height / 2 - paddleHeight / 2;
+    let rightPaddleY = canvas.height / 2 - paddleHeight / 2;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 5;
+    let ballSpeedY = 5;
+
+    function drawPaddles() {
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, leftPaddleY, paddleWidth, paddleHeight);
+      ctx.fillRect(canvas.width - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = 'black';
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function moveBall() {
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      if (ballY + ballRadius > canvas.height || ballY - ballRadius < 0) {
+        ballSpeedY = -ballSpeedY;
+      }
+
+      if (ballX - ballRadius < paddleWidth) {
+        if (ballY > leftPaddleY && ballY < leftPaddleY + paddleHeight) {
+          ballSpeedX = -ballSpeedX;
+        } else {
+          // Right player scores
+          resetBall();
+        }
+      } else if (ballX + ballRadius > canvas.width - paddleWidth) {
+        if (ballY > rightPaddleY && ballY < rightPaddleY + paddleHeight) {
+          ballSpeedX = -ballSpeedX;
+        } else {
+          // Left player scores
+          resetBall();
+        }
+      }
+    }
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = -ballSpeedX;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPaddles();
+      drawBall();
+      moveBall();
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'ArrowUp') {
+        leftPaddleY = Math.max(0, leftPaddleY - 20);
+      } else if (event.code === 'ArrowDown') {
+        leftPaddleY = Math.min(canvas.height - paddleHeight, leftPaddleY + 20);
+      }
+
+      socket.emit('paddle', { y: leftPaddleY });
+    });
+
+    socket.on('paddle', (data) => {
+      rightPaddleY = data.y;
+    });
+  </script>
+</body>
+</html>
